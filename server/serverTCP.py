@@ -4,7 +4,7 @@ import threading
 import json
 from graph_manager import SocialGraph
 from database import UserDataBase
-from auth import AuthManager
+from auth import *
 
 class SocialtecServer:
     def __init__(self, host="localhost", port=8080):
@@ -14,7 +14,7 @@ class SocialtecServer:
         self.clients = []
         self.graph = SocialGraph()
         self.db = UserDataBase()
-        self.auth = AuthManager()
+        self.auth = AuthManager(generate_key())
         self._load_existing_users()
 
     def _load_existing_users(self):
