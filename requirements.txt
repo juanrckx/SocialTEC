@@ -1,6 +1,16 @@
 passlib
+- usar pip install passlib
+
 networkx
+- usar pip install networkx
+
+
 matplotlib
-tkinter
+- usar pip install matplotlib
+
+
 pyqt6
+- usar pip install pyqt6
+
+
 pycriptodome # para encriptación
