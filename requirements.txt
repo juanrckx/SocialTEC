@@ -1,16 +1,5 @@
 passlib
-- usar pip install passlib
-
+cryptography
 networkx
-- usar pip install networkx
-
-
 matplotlib
-- usar pip install matplotlib
-
-
-pyqt6
-- usar pip install pyqt6
-
-
-pycriptodome # para encriptación
+# usar pip install -r requirements.txt
