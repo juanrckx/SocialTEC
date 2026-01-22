@@ -14,7 +14,7 @@ class UserDataBase:
                 return json.load(f)
         return {"users": {}}
     
-    def _save_data(self)
+    def _save_data(self):
         with open(self.db_file, 'w') as f:
             json.dump(self.data, f, indent=2)
 
