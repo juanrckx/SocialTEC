@@ -1,0 +1,1 @@
+# JSON/SQLITE para usuarios y relaciones

@@ -1,0 +1,6 @@
+passlib
+networkx
+matplotlib
+tkinter
+pyqt6
+pycriptodome # para encriptación
