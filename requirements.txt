@@ -1,0 +1,6 @@
+passlib
+cryptography
+networkx
+matplotlib
+PyQt6
+# usar pip install -r requirements.txt
