@@ -29,7 +29,7 @@ class SocialtecServer:
         """"Inicia el servidor"""
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
-        print("Servidor SocialTEC escuchando en {self.host}:{self.port}")
+        print(f"Servidor SocialTEC escuchando en {self.host}:{self.port}")
 
         while True:
             client_socket, address = self.server_socket.accept()

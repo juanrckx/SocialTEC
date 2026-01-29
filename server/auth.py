@@ -24,4 +24,4 @@ class AuthManager:
         return self.cipher.encrypt(data.encode()).decode()
     
     def decrypt_data(self, encrypted_data: str) -> str:
-        return self.cipher.decrypt(encrypted_data.encode()).decode
+        return self.cipher.decrypt(encrypted_data.encode()).decode()

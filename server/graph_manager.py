@@ -43,7 +43,7 @@ class SocialGraph:
     def get_statistics(self) -> dict:
         """Calcula estadísticas del grafo"""
         if self.graph.number_of_nodes() == 0:
-            return {"max": None, "min": None, "avg": 0}
+            return {"max": (None, 0), "min": (None, 0), "avg": 0}
         
         # Grados de cada nodo
         degrees = dict(self.graph.degree())
@@ -52,9 +52,9 @@ class SocialGraph:
         avg = sum(degrees.values()) / len(degrees)
 
         return {
-            "max_friends": (max_user, degrees[max_user]),
-            "min_friends": (min_user, degrees[min_user]),
-            "avg_friends": avg
+            "max": (max_user, degrees[max_user]),
+            "min": (min_user, degrees[min_user]),
+            "avg": avg
         }
     
     def draw_graph(self):
