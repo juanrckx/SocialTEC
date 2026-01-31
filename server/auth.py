@@ -1,12 +1,13 @@
-# Autenticación con Passlib
 from passlib.context import CryptContext
 from cryptography.fernet import Fernet
-import base64
 
-# Para hashing de contraseñas
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256"],
+    deprecated="auto",
+    pbkdf2_sha256__default_rounds=30000,
+    pbkdf2_sha256__salt_size=16
+)
 
-# Para encriptación simétrica de comunicación
 def generate_key():
     return Fernet.generate_key()
 

@@ -1,8 +1,6 @@
 # Interfaz gráfica del servidor con PyQt6
 
 ############################# IMPORTS #############################
-import sys
-import threading
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
@@ -24,49 +22,81 @@ class GraphCanvas(FigureCanvasQTAgg):
         super().__init__(self.fig)
         self.graph_manager = graph_manager
         self.setParent(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.draw_graph()
 
     def draw_graph(self):
-        self.fig.clear()
-        ax = self.fig.add_subplot(111)
-
-        if self.graph_manager.graph.number_of_nodes() == 0:
-            ax.text(0.5, 0.5, 'No hay usuarios en la red',
-                     ha='center', va='center', fontsize=14)
-            ax.set_title("Red social - Vacía")
-        
-        else:
-            # Diseño del grafo
-            pos = nx.spring_layout(self.graph_manager.graph, seed=42, k=2)
-
-            # Nodos
-            nx.draw_networkx_nodes(
-                self.graph_manager.graph, pos,
-                node_color='#3498db',
-                node_size=1500,
-                alpha=0.8
-            )
-
-            # Aristas (conexiones)
-            nx.draw_networkx_edges(
-                self.graph_manager.graph, pos,
-                edge_color='gray',
-                width=1.5,
-                alpha=0.6
-            )
-
-            # Etiquetas
-            nx.draw_networkx_labels(
-                self.graph_manager.graph, pos,
-                font_size=10,
-                font_weight='bold'
-            )
-
-            ax.set_title(f"Red Social SocialTEC - {self.graph_manager.graph.number_of_nodes()} usuarios")
+        """Dibuja el grafo - VERSIÓN CORREGIDA"""
+        try:
+            self.fig.clear()
+            ax = self.fig.add_subplot(111)
+            ax.clear()
+            
+            # Obtener el grafo
+            G = self.graph_manager.graph
+            
+            if G.number_of_nodes() == 0:
+                ax.text(0.5, 0.5, 'No hay usuarios en la red\n\nAgrega usuarios desde el cliente',
+                         ha='center', va='center', fontsize=12, wrap=True)
+                ax.set_title("Red Social - Vacía")
+                ax.axis('off')
+            else:
+                try:
+                    # Usar un layout más estable para pocos nodos
+                    if G.number_of_nodes() < 10:
+                        pos = nx.circular_layout(G)
+                    else:
+                        pos = nx.spring_layout(G, seed=42, k=1, iterations=50)
+                    
+                    # Dibujar el grafo
+                    nx.draw_networkx_nodes(
+                        G, pos,
+                        node_color='#3498db',
+                        node_size=700,
+                        alpha=0.8,
+                        ax=ax
+                    )
+                    
+                    nx.draw_networkx_edges(
+                        G, pos,
+                        edge_color='gray',
+                        width=1.5,
+                        alpha=0.6,
+                        ax=ax
+                    )
+                    
+                    # Etiquetas más pequeñas
+                    nx.draw_networkx_labels(
+                        G, pos,
+                        font_size=8,
+                        font_weight='bold',
+                        ax=ax
+                    )
+                    
+                    ax.set_title(f"Red Social SocialTEC\n{len(G.nodes())} usuarios, {len(G.edges())} conexiones", 
+                                fontsize=10)
+                    ax.axis('off')
+                    
+                    # Ajustar márgenes
+                    self.fig.tight_layout()
+                    
+                except Exception as e:
+                    print(f"Error dibujando grafo: {e}")
+                    ax.text(0.5, 0.5, f'Error dibujando grafo:\n{str(e)}',
+                            ha='center', va='center', fontsize=10)
+                    ax.axis('off')
+            
+            self.draw()
+            
+        except Exception as e:
+            print(f"Error en draw_graph: {e}")
+            # Crear una figura de error
+            self.fig.clear()
+            ax = self.fig.add_subplot(111)
+            ax.text(0.5, 0.5, f'Error:\n{str(e)[:50]}...',
+                    ha='center', va='center', fontsize=10)
             ax.axis('off')
-
-        self.fig.tight_layout()
-        self.draw()
+            self.draw()
 
 
 ########### VENTANA PRINCIPAL DEL SERVIDOR ##########
@@ -83,7 +113,7 @@ class ServerWindow(QMainWindow):
 
         self.init_ui()
 
-        # Timer para actualizarel grafo periódicamente
+        # Timer para actualizar el grafo periódicamente
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_graph)
         self.timer.start(5000)
@@ -117,9 +147,6 @@ class ServerWindow(QMainWindow):
         self.status_label = QLabel("Servidor activo")
         self.status_label.setStyleSheet("color: #27ae60; font-weight: bold;")
         info_layout.addWidget(self.status_label)
-
-        self.clients_label = QLabel("Clientes conectados: 0")
-        info_layout.addWidget(self.clients_label)
 
         self.users_label = QLabel("Usuarios registrados: 0")
         info_layout.addWidget(self.users_label)
@@ -234,7 +261,7 @@ class ServerWindow(QMainWindow):
             self.status_label_bar.setText(f"Grafo actualizado - {num_users} usuarios")
 
         except Exception as e:
-            print("Error actualizando grafo: {e}")
+            print(f"Error actualizando grafo: {e}")
 
     
     def calculate_stats(self):
@@ -255,8 +282,8 @@ class ServerWindow(QMainWindow):
                 stats_text += f"Usuarios con más amigos: {stats['max'][0]} "
                 stats_text += f"({stats['max'][1]} amigos)\n\n"
                 stats_text += f"Usuario con menos amigos: {stats['min'][0]} "
-                stats_text += f"Promedio de amigos por usuario: {stats['avg']:.2nf}\n\n"
-                stats_text += f"Total de usuarios: {self.server.graph.graph.number_of_edges()}\n"
+                stats_text += f"Promedio de amigos por usuario: {stats['avg']:.2f}\n\n"
+                stats_text += f"Total de usuarios: {self.server.graph.graph.number_of_nodes()}\n"
                 stats_text += f"Total de conexiones: {self.server.graph.graph.number_of_edges()}"
 
                 self.stats_text.setText(stats_text)
@@ -293,7 +320,7 @@ class ServerWindow(QMainWindow):
                 path = response["path"]
                 path_text = f"CAMINO ENCONTRADO:\n\n"
                 path_text += " → ".join(path)
-                path_text += f"\n\n📏 Longitud: {len(path)-1} saltos"
+                path_text += f"\n\nLongitud: {len(path)-1} saltos"
             else:
                 path_text = f"NO EXISTE CAMINO\n\nNo hay conexión entre '{user1}' y '{user2}'"
             

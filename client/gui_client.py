@@ -3,17 +3,16 @@ SocialTEC Client - PyQt6 GUI
 Interfaz gráfica inspirada en Facebook con PyQt6
 """
 import sys
-import json
 import base64
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PIL import Image, ImageQt
 
-from client import Client
+from clientTCP import Client
 from merge_sort import sort_friends_by_name
 
 
@@ -63,7 +62,7 @@ class LoginWindow(QMainWindow):
                 color: white;
                 font-size: 48px;
                 font-weight: bold;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
         """)
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -75,7 +74,7 @@ class LoginWindow(QMainWindow):
             QLabel {
                 color: white;
                 font-size: 16px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 padding: 20px;
             }
         """)
@@ -103,7 +102,7 @@ class LoginWindow(QMainWindow):
                 color: #1c1e21;
                 font-size: 28px;
                 font-weight: bold;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
         """)
         form_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -123,7 +122,7 @@ class LoginWindow(QMainWindow):
                 font-size: 14px;
                 border: 1px solid #dddfe2;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 color: #1c1e21;
                 background-color: #f5f6f7;
             }
@@ -147,7 +146,7 @@ class LoginWindow(QMainWindow):
                 font-size: 14px;
                 border: 1px solid #dddfe2;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 color: #1c1e21;
                 background-color: #f5f6f7;
             }
@@ -173,7 +172,7 @@ class LoginWindow(QMainWindow):
                 font-weight: bold;
                 border: none;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
             QPushButton:hover {
                 background-color: #166fe5;
@@ -184,13 +183,6 @@ class LoginWindow(QMainWindow):
         """)
         login_btn.clicked.connect(self.login)
         form_layout.addWidget(login_btn)
-
-        # Enlace olvidé contraseña
-        forgot_link = QLabel("<a href='#' style='color: #1877f2; text-decoration: none;'>¿Olvidaste tu contraseña?</a>")
-        forgot_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        forgot_link.setOpenExternalLinks(False)
-        forgot_link.linkActivated.connect(self.forgot_password)
-        form_layout.addWidget(forgot_link)
 
         right_layout.addWidget(form_widget)
 
@@ -213,7 +205,7 @@ class LoginWindow(QMainWindow):
                 font-weight: bold;
                 border: none;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
             QPushButton:hover {
                 background-color: #36a420;
@@ -230,59 +222,45 @@ class LoginWindow(QMainWindow):
         main_layout.addWidget(right_panel, 1)
 
     def login(self):
-        """Manejar inicio de sesión"""
+        """Manejar inicio de sesión CORREGIDO"""
         username = self.username_input.text().strip()
         password = self.password_input.text()
-
+        
         if not username or not password:
             QMessageBox.warning(self, "Error", "Por favor ingresa usuario y contraseña")
             return
-
-        # Conectar al servidor
-        if not self.client.connect():
-            QMessageBox.critical(self, "Error de conexión", "No se pudo conectar al servidor")
-            return
-
-        # Mostrar indicador de carga
+        
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-
+        
         try:
-            # Intentar login
+            # EL CLIENTE SE CONECTA AUTOMÁTICAMENTE
             response = self.client.login(username, password)
-
+            
             if response.get('status') == 'success':
                 QMessageBox.information(self, "Éxito", "Inicio de sesión exitoso")
-
-                # Abrir ventana principal
                 self.main_window = MainWindow(self.client, username, response.get('user_data', {}))
                 self.main_window.show()
                 self.close()
             else:
-                QMessageBox.critical(self, "Error",
-                                   response.get('message', 'Credenciales incorrectas'))
-
+                error_msg = response.get('message', 'Error desconocido')
+                QMessageBox.critical(self, "Error", f"Inicio de sesión fallido:\n{error_msg}")
+                
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error al iniciar sesión: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Excepción: {str(e)}")
         finally:
             QApplication.restoreOverrideCursor()
 
     def show_register(self):
         """Mostrar ventana de registro"""
-        self.register_window = RegisterWindow()
+        self.register_window = RegisterWindow(self.client)
         self.register_window.show()
-
-    def forgot_password(self):
-        """Manejar olvidé contraseña"""
-        QMessageBox.information(self, "Recuperar Contraseña",
-                              "Por favor contacta al administrador del sistema.")
-
 
 class RegisterWindow(QMainWindow):
     """Ventana de registro de nuevo usuario"""
 
-    def __init__(self):
+    def __init__(self, client=None):
         super().__init__()
-        self.client = Client()
+        self.client = client if client else Client()
         self.photo_data = None
         self.setup_ui()
 
@@ -316,7 +294,7 @@ class RegisterWindow(QMainWindow):
                 color: #1c1e21;
                 font-size: 32px;
                 font-weight: bold;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 padding: 30px;
                 background-color: white;
             }
@@ -353,7 +331,7 @@ class RegisterWindow(QMainWindow):
                     color: #1c1e21;
                     font-size: 14px;
                     font-weight: bold;
-                    font-family: 'Segoe UI';
+                    font-family: 'Arial';
                 }
             """)
             form_layout.addWidget(label)
@@ -370,7 +348,7 @@ class RegisterWindow(QMainWindow):
                     font-size: 14px;
                     border: 1px solid #dddfe2;
                     border-radius: 6px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Arial';
                     color: #1c1e21;
                     background-color: #f5f6f7;
                 }
@@ -396,7 +374,7 @@ class RegisterWindow(QMainWindow):
                 color: #1c1e21;
                 font-size: 14px;
                 font-weight: bold;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
         """)
         photo_layout.addWidget(photo_label)
@@ -411,7 +389,7 @@ class RegisterWindow(QMainWindow):
                 font-size: 14px;
                 border: none;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
             QPushButton:hover {
                 background-color: #d8dadf;
@@ -442,7 +420,7 @@ class RegisterWindow(QMainWindow):
                 font-weight: bold;
                 border: none;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
             QPushButton:hover {
                 background-color: #d8dadf;
@@ -463,7 +441,7 @@ class RegisterWindow(QMainWindow):
                 font-weight: bold;
                 border: none;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
             QPushButton:hover {
                 background-color: #36a420;
@@ -480,13 +458,43 @@ class RegisterWindow(QMainWindow):
         main_layout.addWidget(form_widget)
 
     def select_photo(self):
-        """Seleccionar foto de perfil"""
+        """Seleccionar foto de perfil - CON LÍMITE DE TAMAÑO"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Seleccionar Foto de Perfil",
             "",
-            "Imágenes (*.png *.jpg *.jpeg *.gif *.bmp)"
+            "Imágenes (*.png *.jpg *.jpeg *.gif *.bmp);;Todos los archivos (*)"
         )
+        
+        if file_path:
+            try:
+                # VERIFICAR TAMAÑO MÁXIMO (100KB = 102400 bytes)
+                file_size = os.path.getsize(file_path)
+                MAX_SIZE = 100 * 1024  # 100KB
+                
+                if file_size > MAX_SIZE:
+                    QMessageBox.warning(
+                        self, 
+                        "Imagen demasiado grande",
+                        f"La imagen no debe superar los 100KB.\n"
+                        f"Tamaño actual: {file_size/1024:.1f}KB\n\n"
+                        f"Recomendación: Usa una imagen más pequeña o comprímela."
+                    )
+                    self.photo_data = None
+                    self.photo_status.setText("Imagen muy grande - selecciona otra")
+                    return
+                
+                # Leer y convertir a base64
+                with open(file_path, 'rb') as f:
+                    self.photo_data = base64.b64encode(f.read()).decode('utf-8')
+                
+                # Actualizar estado
+                file_name = os.path.basename(file_path)
+                self.photo_status.setText(f"{file_name} ({file_size/1024:.1f}KB)")
+                
+            except Exception as e:
+                QMessageBox.warning(self, "Error", f"No se pudo cargar la imagen: {str(e)}")
+                self.photo_data = None
 
         if file_path:
             try:
@@ -526,27 +534,21 @@ class RegisterWindow(QMainWindow):
             QMessageBox.warning(self, "Error", "El usuario debe tener al menos 3 caracteres")
             return
 
-        # Conectar al servidor
-        if not self.client.connect():
-            QMessageBox.critical(self, "Error", "No se pudo conectar al servidor")
-            return
-
         # Mostrar indicador de carga
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-
+        
         try:
-            # Registrar usuario
+            # EL CLIENTE SE CONECTA AUTOMÁTICAMENTE
             response = self.client.register(username, password, name, self.photo_data or "")
-
             if response.get('status') == 'success':
                 QMessageBox.information(self, "Éxito", "Cuenta creada exitosamente")
                 self.close()
             else:
-                QMessageBox.critical(self, "Error",
-                                   response.get('message', 'Error al crear cuenta'))
-
+                error_msg = response.get('message', 'Error desconocido')
+                QMessageBox.critical(self, "Error", f"Registro fallido:\n{error_msg}")
+                
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error al registrar: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Excepción: {str(e)}")
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -560,8 +562,10 @@ class MainWindow(QMainWindow):
         self.username = username
         self.user_data = user_data
         self.current_content = None
+        self.editin_photo_data = None
 
         self.setup_ui()
+        self.load_user_friends()
 
     def setup_ui(self):
         """Configurar interfaz principal"""
@@ -614,11 +618,11 @@ class MainWindow(QMainWindow):
 
         # Botones de navegación
         nav_items = [
-            ("👥 Mis Amigos", self.show_friends),
-            ("🔍 Buscar Usuarios", self.show_search),
-            ("📊 Estadísticas", self.show_stats),
-            ("🔄 Ver Conexiones", self.show_connections),
-            ("⚙️ Configuración", self.show_settings)
+            ("Mis Amigos", self.show_friends),
+            ("Buscar Usuarios", self.show_search),
+            ("Estadísticas", self.show_stats),
+            ("Ver Conexiones", self.show_connections),
+            ("Configuración", self.show_settings)
         ]
 
         for icon_text, callback in nav_items:
@@ -632,7 +636,7 @@ class MainWindow(QMainWindow):
                     color: #1c1e21;
                     background-color: white;
                     border: none;
-                    font-family: 'Segoe UI';
+                    font-family: 'Arial';
                 }
                 QPushButton:hover {
                     background-color: #f0f2f5;
@@ -647,7 +651,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(left_panel)
 
     def create_profile_frame(self) -> QFrame:
-        """Crear frame del perfil del usuario"""
+        """Crear frame del perfil del usuario - VERSIÓN CORREGIDA"""
         profile_frame = QFrame()
         profile_frame.setFixedHeight(200)
         profile_frame.setStyleSheet("""
@@ -666,43 +670,80 @@ class MainWindow(QMainWindow):
 
         if self.user_data.get('photo'):
             try:
-                # Convertir base64 a QPixmap
+                # Método directo sin PIL
                 import io
+                from PyQt6.QtGui import QImage, QPixmap
+                
                 photo_bytes = base64.b64decode(self.user_data['photo'])
-                img = Image.open(io.BytesIO(photo_bytes))
-                img.thumbnail((80, 80))
-
-                # Convertir PIL Image a QPixmap
-                qim = ImageQt.ImageQt(img)
-                pixmap = QPixmap.fromImage(qim)
-                photo_label.setPixmap(pixmap)
-            except:
-                # Si hay error, mostrar ícono
+                
+                # Crear QImage desde bytes
+                image = QImage()
+                image.loadFromData(photo_bytes)
+                
+                if not image.isNull():
+                    # Escalar manteniendo proporción
+                    pixmap = QPixmap.fromImage(image)
+                    pixmap = pixmap.scaled(80, 80, 
+                        Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                        Qt.TransformationMode.SmoothTransformation)
+                    
+                    # Crear imagen circular
+                    circular_pixmap = QPixmap(80, 80)
+                    circular_pixmap.fill(Qt.GlobalColor.transparent)
+                    
+                    painter = QPainter(circular_pixmap)
+                    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+                    
+                    # Crear ruta circular
+                    path = QPainterPath()
+                    path.addEllipse(0, 0, 80, 80)
+                    painter.setClipPath(path)
+                    
+                    # Dibujar pixmap
+                    painter.drawPixmap(0, 0, pixmap)
+                    painter.end()
+                    
+                    photo_label.setPixmap(circular_pixmap)
+                else:
+                    raise Exception("Imagen inválida")
+                    
+            except Exception as e:
+                print(f"Error cargando foto: {e}")
+                # Mostrar ícono como fallback
                 photo_label.setText("👤")
-                photo_label.setStyleSheet("font-size: 40px;")
+                photo_label.setStyleSheet("""
+                    QLabel {
+                        font-size: 40px;
+                        border: 2px solid #1877f2;
+                        border-radius: 40px;
+                        background-color: #f0f2f5;
+                    }
+                """)
                 photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         else:
             photo_label.setText("👤")
-            photo_label.setStyleSheet("font-size: 40px;")
+            photo_label.setStyleSheet("""
+                QLabel {
+                    font-size: 40px;
+                    border: 2px solid #1877f2;
+                    border-radius: 40px;
+                    background-color: #f0f2f5;
+                }
+            """)
             photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        photo_label.setStyleSheet("""
-            QLabel {
-                border: 2px solid #1877f2;
-                border-radius: 40px;
-                background-color: #f0f2f5;
-            }
-        """)
         profile_layout.addWidget(photo_label)
 
         # Nombre
-        name_label = QLabel(self.user_data.get('name', self.username))
+        actual_name = self.user_data.get('name', self.username)
+        name_label = QLabel(actual_name)
         name_label.setStyleSheet("""
             QLabel {
                 font-size: 18px;
                 font-weight: bold;
                 color: #1c1e21;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
         """)
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -714,7 +755,7 @@ class MainWindow(QMainWindow):
             QLabel {
                 font-size: 14px;
                 color: #65676b;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
         """)
         username_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -732,7 +773,7 @@ class MainWindow(QMainWindow):
                 font-size: 14px;
                 border: none;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
             QPushButton:hover {
                 background-color: #d8dadf;
@@ -774,7 +815,7 @@ class MainWindow(QMainWindow):
 
         right_layout = QVBoxLayout(right_panel)
         right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        right_layout.setContentsMargins(20, 20, 20, 20)
+        right_layout.setContentsMargins(5, 5, 5, 5)
 
         # Título
         title = QLabel("Sugerencias")
@@ -783,25 +824,53 @@ class MainWindow(QMainWindow):
                 font-size: 18px;
                 font-weight: bold;
                 color: #1c1e21;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
         """)
         right_layout.addWidget(title)
 
-        # Espacio para sugerencias
+        # Botón para refrescar sugerencias
+        refresh_btn = QPushButton("Actualizar Sugerencias")
+        refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e4e6eb;
+                color: #1c1e21;
+                padding: 8px;
+                font-size: 12px;
+                border: none;
+                border-radius: 6px;
+                font-family: 'Arial';
+            }
+            QPushButton:hover {
+                background-color: #d8dadf;
+            }
+        """)
+        refresh_btn.clicked.connect(self.load_suggestions)
+        right_layout.addWidget(refresh_btn)
+
+        # Scroll area para sugerencias
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFixedHeight(500)  # Altura fija
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: white;
+            }
+        """)
+
+        # Widget para sugerencias
         self.suggestions_widget = QWidget()
-        suggestions_layout = QVBoxLayout(self.suggestions_widget)
-        suggestions_layout.setSpacing(10)
+        self.suggestions_layout = QVBoxLayout(self.suggestions_widget)
+        self.suggestions_layout.setSpacing(10)
+        self.suggestions_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Aquí irían las sugerencias de amigos
-        placeholder = QLabel("Las sugerencias de amigos\naparecerán aquí")
-        placeholder.setStyleSheet("color: #65676b; font-size: 14px;")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        placeholder.setWordWrap(True)
-        suggestions_layout.addWidget(placeholder)
+        scroll_area.setWidget(self.suggestions_widget)
+        right_layout.addWidget(scroll_area)
 
-        right_layout.addWidget(self.suggestions_widget)
-        right_layout.addStretch()
+        # Cargar sugerencias inicialmente
+        self.load_suggestions()
 
         # Botón cerrar sesión
         logout_btn = QPushButton("Cerrar Sesión")
@@ -815,7 +884,7 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
                 border: none;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
             QPushButton:hover {
                 background-color: #e53935;
@@ -826,6 +895,212 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(right_panel)
 
+    def load_suggestions(self):
+        """Cargar sugerencias de amigos desde el servidor"""
+        # Limpiar sugerencias anteriores
+        while self.suggestions_layout.count():
+            item = self.suggestions_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        if not self.client.current_user:
+            return
+
+        # Obtener sugerencias del servidor
+        response = self.client.get_suggestions()
+
+        if response.get("status") != "success":
+            error_label = QLabel("No se pudieron cargar las sugerencias")
+            error_label.setStyleSheet("color: #65676b; font-size: 14px; padding: 10px;")
+            error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.suggestions_layout.addWidget(error_label)
+            return
+
+        suggestions = response.get("suggestions", [])
+
+        if not suggestions:
+            no_suggestions = QLabel("No hay sugerencias disponibles.\n\n¡Agrega más amigos para recibir sugerencias!")
+            no_suggestions.setStyleSheet("""
+                QLabel {
+                    color: #65676b;
+                    font-size: 14px;
+                    padding: 20px;
+                    font-family: 'Arial';
+                }
+            """)
+            no_suggestions.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            no_suggestions.setWordWrap(True)
+            self.suggestions_layout.addWidget(no_suggestions)
+            return
+
+        for suggestion in suggestions:
+            suggestion_card = self.create_suggestion_card(suggestion)
+            self.suggestions_layout.addWidget(suggestion_card)
+
+        # Espacio al final
+        self.suggestions_layout.addStretch()
+
+    def create_suggestion_card(self, suggestion: Dict) -> QFrame:
+        """Crear tarjeta para una sugerencia de amigo"""
+        card = QFrame()
+        card.setFixedHeight(120)
+        card.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 1px solid #dddfe2;
+                border-radius: 8px;
+                padding: 10px;
+            }
+            QFrame:hover {
+                border: 1px solid #1877f2;
+                background-color: #f7f9fa;
+            }
+        """)
+
+        card_layout = QHBoxLayout(card)
+        card_layout.setSpacing(10)
+
+        # Foto de perfil
+        photo_label = QLabel()
+        photo_label.setFixedSize(50, 50)
+
+        if suggestion.get('photo'):
+            try:
+                import io
+                photo_bytes = base64.b64decode(suggestion['photo'])
+                image = QImage()
+                if image.loadFromData(photo_bytes):
+                    pixmap = QPixmap.fromImage(image)
+                    pixmap = pixmap.scaled(50, 50, 
+                        Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                        Qt.TransformationMode.SmoothTransformation)
+                    
+                    # Hacerla circular
+                    circular_pixmap = QPixmap(50, 50)
+                    circular_pixmap.fill(Qt.GlobalColor.transparent)
+                    
+                    painter = QPainter(circular_pixmap)
+                    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                    path = QPainterPath()
+                    path.addEllipse(0, 0, 50, 50)
+                    painter.setClipPath(path)
+                    painter.drawPixmap(0, 0, pixmap)
+                    painter.end()
+                    
+                    photo_label.setPixmap(circular_pixmap)
+            except Exception as e:
+                print(f"Error cargando foto de sugerencia: {e}")
+                photo_label.setText("👤")
+                photo_label.setStyleSheet("font-size: 25px;")
+                photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        else:
+            photo_label.setText("👤")
+            photo_label.setStyleSheet("font-size: 25px;")
+            photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        card_layout.addWidget(photo_label)
+
+        # Información del usuario
+        info_widget = QWidget()
+        info_layout = QVBoxLayout(info_widget)
+        info_layout.setSpacing(5)
+
+        # Nombre
+        name_label = QLabel(suggestion['name'])
+        name_label.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                font-weight: bold;
+                color: #1c1e21;
+                font-family: 'Arial';
+            }
+        """)
+        info_layout.addWidget(name_label)
+
+        # Username
+        username_label = QLabel(f"@{suggestion['username']}")
+        username_label.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                color: #65676b;
+                font-family: 'Arial';
+            }
+        """)
+        info_layout.addWidget(username_label)
+
+        # Amigos en común
+        common_label = QLabel(f"Amigos en común: {suggestion.get('common_friends', 0)}")
+        common_label.setStyleSheet("""
+            QLabel {
+                font-size: 11px;
+                color: #42b72a;
+                font-family: 'Arial';
+            }
+        """)
+        info_layout.addWidget(common_label)
+
+        card_layout.addWidget(info_widget, 1)
+
+        # Botón agregar
+        add_btn = QPushButton("+")
+        add_btn.setFixedSize(40, 40)
+        add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        add_btn.setToolTip(f"Agregar a {suggestion['name']} como amigo")
+        add_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #42b72a;
+                color: white;
+                font-size: 20px;
+                font-weight: bold;
+                border: none;
+                border-radius: 20px;
+                font-family: 'Arial';
+            }
+            QPushButton:hover {
+                background-color: #36a420;
+            }
+            QPushButton:pressed {
+                background-color: #2b9217;
+            }
+        """)
+        add_btn.clicked.connect(lambda: self.add_suggested_friend(suggestion['username']))
+        card_layout.addWidget(add_btn)
+
+        return card
+
+    def add_suggested_friend(self, username: str):
+        """Agregar un amigo desde las sugerencias"""
+        reply = QMessageBox.question(
+            self,
+            "Agregar Amigo",
+            f"¿Quieres agregar a {username} como amigo?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            response = self.client.add_friend(username)
+
+            if response.get('status') == 'success':
+                QMessageBox.information(self, "Éxito", f"¡Ahora eres amigo de {username}!")
+                # Recargar sugerencias y lista de amigos
+                self.load_suggestions()
+                self.show_friends()  # Actualizar vista de amigos
+            else:
+                QMessageBox.critical(self, "Error", 
+                                response.get('message', 'No se pudo agregar amigo'))
+
+    def load_user_friends(self):
+        """Cargar amigos del usuario desde el servidor"""
+        if not self.client.current_user:
+            return
+        
+        response = self.client._send_encrypted_request("get_friends", {"username": self.username})
+        
+        if response.get("status") == "success":
+            self.user_data["friends"] = response.get("friends", [])
+        else:
+            self.user_data["friends"] = []
+
     def clear_center_content(self):
         """Limpiar contenido del panel central"""
         while self.center_layout.count():
@@ -834,7 +1109,7 @@ class MainWindow(QMainWindow):
                 item.widget().deleteLater()
 
     def show_friends(self):
-        """Mostrar lista de amigos"""
+        """Mostrar lista de amigos REAL desde el servidor"""
         self.clear_center_content()
 
         # Título
@@ -844,23 +1119,31 @@ class MainWindow(QMainWindow):
                 font-size: 24px;
                 font-weight: bold;
                 color: #1c1e21;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 padding: 20px;
             }
         """)
         self.center_layout.addWidget(title)
 
-        # Obtener amigos (simulado)
-        friends_data = self.get_simulated_friends()
+        # Obtener amigos del servidor
+        response = self.client._send_encrypted_request("get_friends", {"username": self.username})
+
+        if response.get("status") != "success":
+            error_label = QLabel(f"Error al cargar amigos: {response.get('message', 'Error desconocido')}")
+            error_label.setStyleSheet("color: #ff4444; font-size: 16px; padding: 40px;")
+            error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.center_layout.addWidget(error_label)
+            return
+
+        friends_data = response.get("friends", [])
 
         if not friends_data:
-            # Mostrar mensaje si no hay amigos
             no_friends = QLabel("Aún no tienes amigos. ¡Busca y agrega amigos!")
             no_friends.setStyleSheet("""
                 QLabel {
                     font-size: 16px;
                     color: #65676b;
-                    font-family: 'Segoe UI';
+                    font-family: 'Arial';
                     padding: 40px;
                 }
             """)
@@ -894,19 +1177,9 @@ class MainWindow(QMainWindow):
         scroll_area.setWidget(friends_widget)
         self.center_layout.addWidget(scroll_area)
 
-    def get_simulated_friends(self) -> List[Dict]:
-        """Obtener lista simulada de amigos"""
-        return [
-            {"name": "Ana López", "username": "ana_lopez", "photo": None},
-            {"name": "Carlos Ruiz", "username": "carlos_ruiz", "photo": None},
-            {"name": "María García", "username": "maria_garcia", "photo": None},
-            {"name": "Juan Pérez", "username": "juan_perez", "photo": None},
-            {"name": "Laura Martínez", "username": "laura_mtz", "photo": None},
-            {"name": "Pedro Sánchez", "username": "pedro_sanchez", "photo": None},
-        ]
 
     def create_friend_card(self, friend: Dict) -> QFrame:
-        """Crear tarjeta para mostrar un amigo"""
+        """Crear tarjeta para mostrar un amigo REAL - VERSIÓN CORREGIDA"""
         card = QFrame()
         card.setFixedSize(220, 280)
         card.setStyleSheet("""
@@ -929,8 +1202,27 @@ class MainWindow(QMainWindow):
         photo_label.setFixedSize(100, 100)
 
         if friend.get('photo'):
-            # Aquí cargaría la foto real
-            pass
+            try:
+                # Método simplificado
+                photo_bytes = base64.b64decode(friend['photo'])
+                
+                # Crear QImage directamente
+                image = QImage()
+                if image.loadFromData(photo_bytes):
+                    pixmap = QPixmap.fromImage(image)
+                    pixmap = pixmap.scaled(100, 100, 
+                        Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                        Qt.TransformationMode.SmoothTransformation)
+                    
+                    photo_label.setPixmap(pixmap)
+                else:
+                    raise Exception("No se pudo cargar imagen")
+                    
+            except Exception as e:
+                print(f"Error cargando foto de amigo: {e}")
+                photo_label.setText("👤")
+                photo_label.setStyleSheet("font-size: 50px;")
+                photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         else:
             photo_label.setText("👤")
             photo_label.setStyleSheet("font-size: 50px;")
@@ -951,7 +1243,7 @@ class MainWindow(QMainWindow):
                 font-size: 16px;
                 font-weight: bold;
                 color: #1c1e21;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
         """)
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -964,36 +1256,29 @@ class MainWindow(QMainWindow):
             QLabel {
                 font-size: 14px;
                 color: #65676b;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
         """)
         username_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         card_layout.addWidget(username_label)
 
+        # Número de amigos
+        friend_count = friend.get('friend_count', 0)
+        count_label = QLabel(f"Amigos: {friend_count}")
+        count_label.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                color: #8a8d91;
+                font-family: 'Arial';
+            }
+        """)
+        count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(count_label)
+
         # Botones de acción
         btn_frame = QWidget()
         btn_layout = QHBoxLayout(btn_frame)
         btn_layout.setSpacing(5)
-
-        # Botón ver perfil
-        view_btn = QPushButton("Ver")
-        view_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        view_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1877f2;
-                color: white;
-                padding: 6px 12px;
-                font-size: 12px;
-                border: none;
-                border-radius: 4px;
-                font-family: 'Segoe UI';
-            }
-            QPushButton:hover {
-                background-color: #166fe5;
-            }
-        """)
-        view_btn.clicked.connect(lambda: self.view_profile(friend['username']))
-        btn_layout.addWidget(view_btn)
 
         # Botón eliminar
         remove_btn = QPushButton("Eliminar")
@@ -1006,7 +1291,7 @@ class MainWindow(QMainWindow):
                 font-size: 12px;
                 border: none;
                 border-radius: 4px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
             QPushButton:hover {
                 background-color: #e53935;
@@ -1020,6 +1305,7 @@ class MainWindow(QMainWindow):
 
         return card
 
+
     def show_search(self):
         """Mostrar búsqueda de usuarios"""
         self.clear_center_content()
@@ -1031,7 +1317,7 @@ class MainWindow(QMainWindow):
                 font-size: 24px;
                 font-weight: bold;
                 color: #1c1e21;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 padding: 20px;
             }
         """)
@@ -1051,7 +1337,7 @@ class MainWindow(QMainWindow):
                 font-size: 14px;
                 border: 2px solid #1877f2;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 color: #1c1e21;
                 background-color: white;
             }
@@ -1073,7 +1359,7 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
                 border: none;
                 border-radius: 6px;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
             }
             QPushButton:hover {
                 background-color: #166fe5;
@@ -1097,7 +1383,7 @@ class MainWindow(QMainWindow):
         self.center_layout.addWidget(scroll_area, 1)
 
     def perform_search(self):
-        """Realizar búsqueda de usuarios"""
+        """Realizar búsqueda REAL de usuarios"""
         query = self.search_input.text().strip()
 
         if not query:
@@ -1110,12 +1396,17 @@ class MainWindow(QMainWindow):
             if item.widget():
                 item.widget().deleteLater()
 
-        # Simular búsqueda
-        results = [
-            {"name": "Ana López", "username": "ana_lopez", "is_friend": True},
-            {"name": "Carlos Ruiz", "username": "carlos_ruiz", "is_friend": False},
-            {"name": "María García", "username": "maria_garcia", "is_friend": True},
-        ]
+        # Realizar búsqueda REAL
+        response = self.client.search_user(query)
+
+        if response.get("status") != "success":
+            error_label = QLabel(f"Error en búsqueda: {response.get('message', 'Error desconocido')}")
+            error_label.setStyleSheet("color: #ff4444; font-size: 14px; padding: 20px;")
+            error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.results_layout.addWidget(error_label)
+            return
+
+        results = response.get("users", [])
 
         if not results:
             no_results = QLabel("No se encontraron usuarios")
@@ -1131,9 +1422,9 @@ class MainWindow(QMainWindow):
         self.results_layout.addStretch()
 
     def create_search_result_card(self, user: Dict) -> QFrame:
-        """Crear tarjeta para resultado de búsqueda"""
+        """Crear tarjeta para resultado de búsqueda REAL"""
         card = QFrame()
-        card.setFixedHeight(80)
+        card.setFixedHeight(100)
         card.setStyleSheet("""
             QFrame {
                 background-color: white;
@@ -1143,6 +1434,40 @@ class MainWindow(QMainWindow):
         """)
 
         card_layout = QHBoxLayout(card)
+        card_layout.setContentsMargins(15, 10, 15, 10)
+
+        # Foto
+        photo_label = QLabel()
+        photo_label.setFixedSize(60, 60)
+        
+        if user.get('photo'):
+            try:
+                import io
+                from PIL import Image
+                photo_bytes = base64.b64decode(user['photo'])
+                img = Image.open(io.BytesIO(photo_bytes))
+                img.thumbnail((60, 60))
+                
+                from PIL.ImageQt import ImageQt
+                qim = ImageQt(img)
+                pixmap = QPixmap.fromImage(qim)
+                photo_label.setPixmap(pixmap)
+            except:
+                photo_label.setText("")
+                photo_label.setStyleSheet("font-size: 30px;")
+                photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        else:
+            photo_label.setText("")
+            photo_label.setStyleSheet("font-size: 30px;")
+            photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        photo_label.setStyleSheet("""
+            QLabel {
+                border-radius: 30px;
+                background-color: #f0f2f5;
+            }
+        """)
+        card_layout.addWidget(photo_label)
 
         # Información del usuario
         info_widget = QWidget()
@@ -1153,7 +1478,7 @@ class MainWindow(QMainWindow):
         name_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #1c1e21;")
         info_layout.addWidget(name_label)
 
-        username_label = QLabel(f"@{user['username']}")
+        username_label = QLabel(f"@{user['username']} • {user.get('friend_count', 0)} amigos")
         username_label.setStyleSheet("font-size: 14px; color: #65676b;")
         info_layout.addWidget(username_label)
 
@@ -1163,9 +1488,8 @@ class MainWindow(QMainWindow):
         btn_frame = QWidget()
         btn_layout = QHBoxLayout(btn_frame)
 
-        if user['is_friend']:
-            # Si ya es amigo, botón para eliminar
-            action_btn = QPushButton("Eliminar Amigo")
+        if user.get('is_friend', False):
+            action_btn = QPushButton("Eliminar")
             action_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #ff4444;
@@ -1173,12 +1497,15 @@ class MainWindow(QMainWindow):
                     padding: 8px 16px;
                     border: none;
                     border-radius: 4px;
+                    font-family: 'Arial';
+                }
+                QPushButton:hover {
+                    background-color: #e53935;
                 }
             """)
             action_btn.clicked.connect(lambda: self.remove_friend(user['username']))
         else:
-            # Si no es amigo, botón para agregar
-            action_btn = QPushButton("Agregar Amigo")
+            action_btn = QPushButton("Agregar")
             action_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #42b72a;
@@ -1186,6 +1513,10 @@ class MainWindow(QMainWindow):
                     padding: 8px 16px;
                     border: none;
                     border-radius: 4px;
+                    font-family: 'Arial';
+                }
+                QPushButton:hover {
+                    background-color: #36a420;
                 }
             """)
             action_btn.clicked.connect(lambda: self.add_friend(user['username']))
@@ -1196,6 +1527,326 @@ class MainWindow(QMainWindow):
         card_layout.addWidget(btn_frame)
 
         return card
+
+    def edit_profile(self):
+        """Editar perfil - IMPLEMENTACIÓN COMPLETA"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Editar Perfil")
+        dialog.setFixedSize(500, 400)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(15)
+
+        # Título
+        title = QLabel("Editar Información de Perfil")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #1c1e21;")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        # Campo nombre
+        name_layout = QHBoxLayout()
+        name_label = QLabel("Nombre:")
+        name_label.setFixedWidth(120)
+        name_layout.addWidget(name_label)
+
+        self.name_edit = QLineEdit()
+        self.name_edit.setText(self.user_data.get('name', self.username))
+        self.name_edit.setPlaceholderText("Ingresa tu nombre completo")
+        self.name_edit.setStyleSheet("""
+            QLineEdit {
+                padding: 10px;
+                border: 1px solid #dddfe2;
+                border-radius: 6px;
+                color: #1c1e21;
+                background-color: white;
+            }
+        """)
+        name_layout.addWidget(self.name_edit)
+        layout.addLayout(name_layout)
+
+        # Foto de perfil
+        photo_group = QGroupBox("Foto de Perfil")
+        photo_layout = QVBoxLayout(photo_group)
+
+        # Vista previa
+        preview_layout = QHBoxLayout()
+        self.preview_label = QLabel()
+        self.preview_label.setFixedSize(100, 100)
+        
+        # Mostrar foto actual
+        if self.user_data.get('photo'):
+            try:
+                import io
+                from PIL import Image
+                photo_bytes = base64.b64decode(self.user_data['photo'])
+                img = Image.open(io.BytesIO(photo_bytes))
+                img.thumbnail((100, 100))
+                
+                from PIL.ImageQt import ImageQt
+                qim = ImageQt(img)
+                pixmap = QPixmap.fromImage(qim)
+                self.preview_label.setPixmap(pixmap)
+            except:
+                self.preview_label.setText("")
+                self.preview_label.setStyleSheet("font-size: 40px;")
+                self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        else:
+            self.preview_label.setText("")
+            self.preview_label.setStyleSheet("font-size: 40px;")
+            self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.preview_label.setStyleSheet("""
+            QLabel {
+                border: 2px solid #1877f2;
+                border-radius: 50px;
+                background-color: #f0f2f5;
+            }
+        """)
+        preview_layout.addWidget(self.preview_label)
+        preview_layout.addStretch()
+        photo_layout.addLayout(preview_layout)
+
+        # Botones de foto
+        button_layout = QHBoxLayout()
+        
+        upload_btn = QPushButton("Subir Nueva Foto")
+        upload_btn.clicked.connect(lambda: self.upload_profile_photo(dialog))
+        upload_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1877f2;
+                color: white;
+                padding: 8px 16px;
+                border: none;
+                border-radius: 4px;
+            }
+        """)
+        button_layout.addWidget(upload_btn)
+
+        remove_btn = QPushButton("Eliminar Foto")
+        remove_btn.clicked.connect(lambda: self.remove_profile_photo())
+        remove_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #ff4444;
+                color: white;
+                padding: 8px 16px;
+                border: none;
+                border-radius: 4px;
+            }
+        """)
+        button_layout.addWidget(remove_btn)
+
+        photo_layout.addLayout(button_layout)
+        layout.addWidget(photo_group)
+
+        # Botones de acción
+        button_box = QDialogButtonBox()
+        save_btn = QPushButton("Guardar Cambios")
+        save_btn.clicked.connect(lambda: self.save_profile_changes(dialog))
+        cancel_btn = QPushButton("Cancelar")
+        cancel_btn.clicked.connect(dialog.reject)
+
+        button_box.addButton(save_btn, QDialogButtonBox.ButtonRole.AcceptRole)
+        button_box.addButton(cancel_btn, QDialogButtonBox.ButtonRole.RejectRole)
+
+        layout.addWidget(button_box)
+        dialog.exec()
+
+    def upload_profile_photo(self, dialog):
+        """Subir nueva foto de perfil"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            dialog,
+            "Seleccionar Foto de Perfil",
+            "",
+            "Imágenes (*.png *.jpg *.jpeg *.gif *.bmp);;Todos los archivos (*)"
+        )
+        
+        if file_path:
+            try:
+                import os
+                # Verificar tamaño (máximo 100KB)
+                file_size = os.path.getsize(file_path)
+                MAX_SIZE = 100 * 1024
+                
+                if file_size > MAX_SIZE:
+                    QMessageBox.warning(
+                        dialog,
+                        "Imagen muy grande",
+                        f"La imagen no debe superar los 100KB.\n"
+                        f"Tamaño actual: {file_size/1024:.1f}KB"
+                    )
+                    return
+                
+                # Leer y convertir a base64
+                with open(file_path, 'rb') as f:
+                    self.editing_photo_data = base64.b64encode(f.read()).decode('utf-8')
+                
+                # Actualizar vista previa
+                from PIL import Image
+                import io
+                photo_bytes = base64.b64decode(self.editing_photo_data)
+                img = Image.open(io.BytesIO(photo_bytes))
+                img.thumbnail((100, 100))
+                
+                from PIL.ImageQt import ImageQt
+                qim = ImageQt(img)
+                pixmap = QPixmap.fromImage(qim)
+                self.preview_label.setPixmap(pixmap)
+                
+            except Exception as e:
+                QMessageBox.warning(dialog, "Error", f"No se pudo cargar la imagen: {str(e)}")
+
+    def remove_profile_photo(self):
+        """Eliminar foto de perfil"""
+        self.editing_photo_data = ""  # String vacío para eliminar foto
+        self.preview_label.setText("")
+        self.preview_label.setPixmap(QPixmap())
+        self.preview_label.setStyleSheet("""
+            QLabel {
+                border: 2px solid #1877f2;
+                border-radius: 50px;
+                background-color: #f0f2f5;
+                font-size: 40px;
+            }
+        """)
+        self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    def save_profile_changes(self, dialog):
+        """Guardar cambios del perfil en el servidor"""
+        new_name = self.name_edit.text().strip()
+        
+        if not new_name:
+            QMessageBox.warning(dialog, "Error", "El nombre no puede estar vacío")
+            return
+        
+        # Determinar qué actualizar
+        update_data = {"name": new_name}
+        
+        if hasattr(self, 'editing_photo_data') and self.editing_photo_data is not None:
+            update_data["photo"] = self.editing_photo_data
+        
+        # Enviar al servidor
+        response = self.client.update_profile(**update_data)
+        
+        if response.get("status") == "success":
+            # Actualizar datos locales
+            self.user_data['name'] = new_name
+            if 'photo' in update_data:
+                self.user_data['photo'] = update_data['photo']
+            
+            QMessageBox.information(dialog, "Éxito", "Perfil actualizado correctamente")
+            
+            # Actualizar interfaz
+            self.update_profile_display()
+            dialog.accept()
+        else:
+            QMessageBox.critical(dialog, "Error", 
+                               response.get("message", "Error al actualizar el perfil"))
+
+    def update_profile_display(self):
+        """Actualizar la visualización del perfil en el panel izquierdo"""
+        # Esta función actualizaría los elementos de la UI con los nuevos datos
+        # Dado que la interfaz es estática, podríamos recargar ciertos componentes
+        # o simplemente mostrar un mensaje de éxito
+        
+        # Para una implementación más completa, podrías emitir una señal
+        # pero por ahora, solo cerramos el diálogo
+        pass
+
+    def change_password(self):
+        """Cambiar contraseña - IMPLEMENTACIÓN COMPLETA"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Cambiar Contraseña")
+        dialog.setFixedSize(400, 300)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(15)
+
+        # Título
+        title = QLabel("Cambiar Contraseña")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #1c1e21;")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        # Contraseña actual
+        old_pass_group = QGroupBox("Contraseña Actual")
+        old_pass_layout = QVBoxLayout(old_pass_group)
+        
+        self.old_pass_input = QLineEdit()
+        self.old_pass_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.old_pass_input.setPlaceholderText("Ingresa tu contraseña actual")
+        self.old_pass_input.setStyleSheet("padding: 8px; border: 1px solid #dddfe2; border-radius: 4px;")
+        old_pass_layout.addWidget(self.old_pass_input)
+        layout.addWidget(old_pass_group)
+
+        # Nueva contraseña
+        new_pass_group = QGroupBox("Nueva Contraseña")
+        new_pass_layout = QVBoxLayout(new_pass_group)
+        
+        self.new_pass_input = QLineEdit()
+        self.new_pass_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.new_pass_input.setPlaceholderText("Ingresa tu nueva contraseña")
+        self.new_pass_input.setStyleSheet("padding: 8px; border: 1px solid #dddfe2; border-radius: 4px;")
+        new_pass_layout.addWidget(self.new_pass_input)
+        layout.addWidget(new_pass_group)
+
+        # Confirmar nueva contraseña
+        confirm_pass_group = QGroupBox("Confirmar Nueva Contraseña")
+        confirm_pass_layout = QVBoxLayout(confirm_pass_group)
+        
+        self.confirm_pass_input = QLineEdit()
+        self.confirm_pass_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.confirm_pass_input.setPlaceholderText("Confirma tu nueva contraseña")
+        self.confirm_pass_input.setStyleSheet("padding: 8px; border: 1px solid #dddfe2; border-radius: 4px;")
+        confirm_pass_layout.addWidget(self.confirm_pass_input)
+        layout.addWidget(confirm_pass_group)
+
+        # Botones
+        button_box = QDialogButtonBox()
+        change_btn = QPushButton("Cambiar Contraseña")
+        change_btn.clicked.connect(lambda: self.save_password_change(dialog))
+        cancel_btn = QPushButton("Cancelar")
+        cancel_btn.clicked.connect(dialog.reject)
+
+        button_box.addButton(change_btn, QDialogButtonBox.ButtonRole.AcceptRole)
+        button_box.addButton(cancel_btn, QDialogButtonBox.ButtonRole.RejectRole)
+
+        layout.addWidget(button_box)
+        dialog.exec()
+
+    def save_password_change(self, dialog):
+        """Guardar el cambio de contraseña en el servidor"""
+        old_password = self.old_pass_input.text()
+        new_password = self.new_pass_input.text()
+        confirm_password = self.confirm_pass_input.text()
+
+        # Validaciones
+        if not old_password or not new_password or not confirm_password:
+            QMessageBox.warning(dialog, "Error", "Todos los campos son obligatorios")
+            return
+
+        if new_password != confirm_password:
+            QMessageBox.warning(dialog, "Error", "Las nuevas contraseñas no coinciden")
+            return
+
+        if len(new_password) < 6:
+            QMessageBox.warning(dialog, "Error", "La nueva contraseña debe tener al menos 6 caracteres")
+            return
+
+        if old_password == new_password:
+            QMessageBox.warning(dialog, "Error", "La nueva contraseña debe ser diferente a la actual")
+            return
+
+        # Enviar al servidor
+        response = self.client.change_password(old_password, new_password)
+
+        if response.get("status") == "success":
+            QMessageBox.information(dialog, "Éxito", "Contraseña cambiada correctamente")
+            dialog.accept()
+        else:
+            QMessageBox.critical(dialog, "Error", 
+                               response.get("message", "Error al cambiar la contraseña"))
+
+
 
     def show_stats(self):
         """Mostrar estadísticas"""
@@ -1208,7 +1859,7 @@ class MainWindow(QMainWindow):
                 font-size: 24px;
                 font-weight: bold;
                 color: #1c1e21;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 padding: 20px;
             }
         """)
@@ -1240,7 +1891,7 @@ class MainWindow(QMainWindow):
             max_frame = QFrame()
             max_layout = QHBoxLayout(max_frame)
 
-            max_label = QLabel("👑 Usuario con más amigos:")
+            max_label = QLabel("Usuario con más amigos:")
             max_label.setStyleSheet("font-size: 16px; font-weight: bold;")
             max_layout.addWidget(max_label)
 
@@ -1257,7 +1908,7 @@ class MainWindow(QMainWindow):
             min_frame = QFrame()
             min_layout = QHBoxLayout(min_frame)
 
-            min_label = QLabel("📉 Usuario con menos amigos:")
+            min_label = QLabel("Usuario con menos amigos:")
             min_label.setStyleSheet("font-size: 16px; font-weight: bold;")
             min_layout.addWidget(min_label)
 
@@ -1273,7 +1924,7 @@ class MainWindow(QMainWindow):
             avg_frame = QFrame()
             avg_layout = QHBoxLayout(avg_frame)
 
-            avg_label = QLabel("📊 Promedio de amigos por usuario:")
+            avg_label = QLabel("Promedio de amigos por usuario:")
             avg_label.setStyleSheet("font-size: 16px; font-weight: bold;")
             avg_layout.addWidget(avg_label)
 
@@ -1297,7 +1948,7 @@ class MainWindow(QMainWindow):
                 font-size: 24px;
                 font-weight: bold;
                 color: #1c1e21;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 padding: 20px;
             }
         """)
@@ -1392,10 +2043,10 @@ class MainWindow(QMainWindow):
         if response.get('status') == 'success':
             path = response.get('path', [])
             path_text = " → ".join(path)
-            self.connection_result.setText(f"✅ Conexión encontrada:\n\n{path_text}\n\n📏 Distancia: {len(path)-1} saltos")
+            self.connection_result.setText(f"Conexión encontrada:\n\n{path_text}\n\n Distancia: {len(path)-1} saltos")
             self.connection_result.setStyleSheet("color: #42b72a; font-size: 16px; padding: 20px; background-color: white;")
         else:
-            self.connection_result.setText(f"❌ No existe conexión entre {self.username} y {target_user}")
+            self.connection_result.setText(f"No existe conexión entre {self.username} y {target_user}")
             self.connection_result.setStyleSheet("color: #ff4444; font-size: 16px; padding: 20px; background-color: white;")
 
     def show_settings(self):
@@ -1409,7 +2060,7 @@ class MainWindow(QMainWindow):
                 font-size: 24px;
                 font-weight: bold;
                 color: #1c1e21;
-                font-family: 'Segoe UI';
+                font-family: 'Arial';
                 padding: 20px;
             }
         """)
@@ -1491,14 +2142,6 @@ class MainWindow(QMainWindow):
             else:
                 QMessageBox.critical(self, "Error",
                                    response.get('message', 'No se pudo eliminar amigo'))
-
-    def edit_profile(self):
-        """Editar perfil"""
-        QMessageBox.information(self, "Editar Perfil", "Funcionalidad en desarrollo")
-
-    def change_password(self):
-        """Cambiar contraseña"""
-        QMessageBox.information(self, "Cambiar Contraseña", "Funcionalidad en desarrollo")
 
     def delete_account(self):
         """Eliminar cuenta"""
