@@ -1,1 +1,0 @@
-# Protocolo de comuniación (JSON)
