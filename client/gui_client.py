@@ -711,7 +711,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 print(f"Error cargando foto: {e}")
                 # Mostrar ícono como fallback
-                photo_label.setText("👤")
+                photo_label.setText("")
                 photo_label.setStyleSheet("""
                     QLabel {
                         font-size: 40px;
@@ -722,7 +722,7 @@ class MainWindow(QMainWindow):
                 """)
                 photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         else:
-            photo_label.setText("👤")
+            photo_label.setText("")
             photo_label.setStyleSheet("""
                 QLabel {
                     font-size: 40px;
@@ -990,11 +990,11 @@ class MainWindow(QMainWindow):
                     photo_label.setPixmap(circular_pixmap)
             except Exception as e:
                 print(f"Error cargando foto de sugerencia: {e}")
-                photo_label.setText("👤")
+                photo_label.setText("")
                 photo_label.setStyleSheet("font-size: 25px;")
                 photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         else:
-            photo_label.setText("👤")
+            photo_label.setText("")
             photo_label.setStyleSheet("font-size: 25px;")
             photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -1220,11 +1220,11 @@ class MainWindow(QMainWindow):
                     
             except Exception as e:
                 print(f"Error cargando foto de amigo: {e}")
-                photo_label.setText("👤")
+                photo_label.setText("")
                 photo_label.setStyleSheet("font-size: 50px;")
                 photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         else:
-            photo_label.setText("👤")
+            photo_label.setText("")
             photo_label.setStyleSheet("font-size: 50px;")
             photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -1348,7 +1348,7 @@ class MainWindow(QMainWindow):
         self.search_input.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
         search_layout.addWidget(self.search_input, 1)
 
-        search_btn = QPushButton("🔍 Buscar")
+        search_btn = QPushButton("Buscar")
         search_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         search_btn.setStyleSheet("""
             QPushButton {
@@ -1989,7 +1989,7 @@ class MainWindow(QMainWindow):
         form_layout.addWidget(user_frame)
 
         # Botón buscar conexión
-        find_btn = QPushButton("🔍 Buscar Conexión")
+        find_btn = QPushButton("Buscar Conexión")
         find_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         find_btn.setStyleSheet("""
             QPushButton {

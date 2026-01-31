@@ -125,3 +125,6 @@ dmypy.json
 
 ### Mac OS ###
 .DS_Store
+
+### Secret key ###
+secret.key
